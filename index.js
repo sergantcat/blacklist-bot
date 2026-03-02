@@ -1,62 +1,106 @@
-import {
-  Client,
-  GatewayIntentBits,
+const { 
+  Client, 
+  GatewayIntentBits, 
+  REST, 
+  Routes, 
+  SlashCommandBuilder, 
   PermissionsBitField,
-  EmbedBuilder
-} from 'discord.js';
-import dotenv from 'dotenv';
-dotenv.config();
+  EmbedBuilder 
+} = require("discord.js");
+require("dotenv").config();
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
 });
 
-client.once('ready', () => {
-  console.log(`Logged in as ${client.user.tag}`);
-});
+// ✅ SLASH COMMAND DATA
+const commands = [
+  new SlashCommandBuilder()
+    .setName("blacklist")
+    .setDescription("Blacklist a user from security")
+    .addUserOption(option =>
+      option.setName("user")
+        .setDescription("User to blacklist")
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName("reason")
+        .setDescription("Reason for blacklist")
+        .setRequired(false)
+    )
+    .toJSON()
+];
 
-client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-  if (interaction.commandName !== 'blacklist') return;
+// ✅ REGISTER COMMANDS WHEN BOT STARTS
+client.once("clientReady", async () => {
+  console.log(`✅ Logged in as ${client.user.tag}`);
 
-  // Permission check
-  if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
-    return interaction.reply({
-      content: '❌ You need Manage Roles permission.',
-      ephemeral: true
-    });
-  }
-
-  const user = interaction.options.getUser('user');
-  const reason = interaction.options.getString('reason');
-  const member = await interaction.guild.members.fetch(user.id);
+  const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
   try {
-    // Give role
-    await member.roles.add(process.env.BLACKLIST_ROLE_ID);
+    console.log("🔄 Registering slash command...");
 
-    // DM embed
-    const embed = new EmbedBuilder()
-      .setTitle('🚫 Blacklisted')
-      .setDescription('You have been blacklisted from security.')
-      .addFields({ name: 'Reason', value: reason })
-      .setColor('Red')
-      .setTimestamp();
+    await rest.put(
+      Routes.applicationGuildCommands(
+        process.env.CLIENT_ID,
+        process.env.GUILD_ID
+      ),
+      { body: commands }
+    );
+
+    console.log("✅ Slash command registered.");
+  } catch (error) {
+    console.error(error);
+  }
+});
+
+// ✅ COMMAND HANDLER
+client.on("interactionCreate", async interaction => {
+  if (!interaction.isChatInputCommand()) return;
+
+  if (interaction.commandName === "blacklist") {
+    // Permission check
+    if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
+      return interaction.reply({
+        content: "❌ You need Manage Roles permission.",
+        ephemeral: true
+      });
+    }
+
+    const user = interaction.options.getUser("user");
+    const reason = interaction.options.getString("reason") || "No reason provided.";
+
+    const member = await interaction.guild.members.fetch(user.id);
 
     try {
-      await user.send({ embeds: [embed] });
-    } catch {}
+      // ✅ GIVE ROLE
+      await member.roles.add(process.env.BLACKLIST_ROLE_ID);
 
-    await interaction.reply({
-      content: `✅ ${user.tag} has been blacklisted.`
-    });
+      // ✅ DM USER
+      try {
+        const dmEmbed = new EmbedBuilder()
+          .setTitle("🚫 Blacklisted")
+          .setDescription(`You have been blacklisted from security.\n\n**Reason:** ${reason}`)
+          .setColor("Red");
 
-  } catch (err) {
-    console.error(err);
-    await interaction.reply({
-      content: '❌ Failed to blacklist user.',
-      ephemeral: true
-    });
+        await user.send({ embeds: [dmEmbed] });
+      } catch {
+        console.log("Could not DM the user.");
+      }
+
+      // ✅ SUCCESS MESSAGE
+      await interaction.reply({
+        content: `✅ ${user.tag} has been blacklisted.`,
+        ephemeral: false
+      });
+
+    } catch (err) {
+      console.error(err);
+      interaction.reply({
+        content: "❌ Failed to blacklist user.",
+        ephemeral: true
+      });
+    }
   }
 });
 
