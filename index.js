@@ -28,7 +28,7 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
 
 // 🔴 PUT YOUR ROLE ID HERE
-const BLACKLIST_ROLE = "PUT_ROLE_ID_HERE";
+const BLACKLIST_ROLE = "1467522291322847425";
 
 // ================= CLIENT =================
 const client = new Client({
