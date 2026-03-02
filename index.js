@@ -1,15 +1,8 @@
 require('dotenv').config();
-const { 
-  Client, 
-  GatewayIntentBits, 
-  Events 
-} = require('discord.js');
+const { Client, GatewayIntentBits, Events } = require('discord.js');
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers
-  ]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
 });
 
 client.once(Events.ClientReady, () => {
@@ -22,44 +15,21 @@ client.on(Events.InteractionCreate, async interaction => {
   if (interaction.commandName === 'blacklist') {
     const user = interaction.options.getUser('user');
     const reason = interaction.options.getString('reason');
-    const member = await interaction.guild.members.fetch(user.id);
 
-    const role = interaction.guild.roles.cache.get(
-      process.env.BLACKLIST_ROLE_ID
-    );
+    const member = await interaction.guild.members.fetch(user.id);
+    const role = interaction.guild.roles.cache.get(process.env.BLACKLIST_ROLE_ID);
 
     if (!role) {
-      return interaction.reply({
-        content: '❌ Blacklist role not found.',
-        ephemeral: true
-      });
+      return interaction.reply({ content: 'Blacklist role not found.', ephemeral: true });
     }
+
+    await member.roles.add(role);
 
     try {
-      // Add role
-      await member.roles.add(role);
+      await user.send(`🚫 You have been blacklisted from security\nReason: ${reason}`);
+    } catch {}
 
-      // DM user
-      try {
-        await user.send(
-          `🚫 You have been blacklisted from security\nReason: ${reason}`
-        );
-      } catch {
-        console.log("Couldn't DM user");
-      }
-
-      await interaction.reply({
-        content: `✅ ${user.tag} has been blacklisted.`,
-        ephemeral: true
-      });
-
-    } catch (err) {
-      console.error(err);
-      await interaction.reply({
-        content: '❌ Failed to blacklist user.',
-        ephemeral: true
-      });
-    }
+    await interaction.reply({ content: `✅ ${user.tag} blacklisted.`, ephemeral: true });
   }
 });
 
