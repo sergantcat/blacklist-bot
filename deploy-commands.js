@@ -5,31 +5,18 @@ const commands = [
   new SlashCommandBuilder()
     .setName('blacklist')
     .setDescription('Blacklist a user')
-    .addUserOption(option =>
-      option.setName('user')
-        .setDescription('User to blacklist')
-        .setRequired(true))
-    .addStringOption(option =>
-      option.setName('reason')
-        .setDescription('Reason for blacklist')
-        .setRequired(true))
-].map(cmd => cmd.toJSON());
+    .addUserOption(o =>
+      o.setName('user').setDescription('User').setRequired(true))
+    .addStringOption(o =>
+      o.setName('reason').setDescription('Reason').setRequired(true))
+].map(c => c.toJSON());
 
-const rest = new REST({ version: '10' })
-  .setToken(process.env.TOKEN);
+const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 (async () => {
-  try {
-    console.log('Deploying commands...');
-    await rest.put(
-      Routes.applicationGuildCommands(
-        process.env.CLIENT_ID,
-        process.env.GUILD_ID
-      ),
-      { body: commands }
-    );
-    console.log('Commands deployed.');
-  } catch (error) {
-    console.error(error);
-  }
+  await rest.put(
+    Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+    { body: commands }
+  );
+  console.log('Commands deployed');
 })();
