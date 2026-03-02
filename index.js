@@ -1,50 +1,108 @@
-require("dotenv").config();
+require('dotenv').config();
 
-const express = require("express");
-const { Client, GatewayIntentBits } = require("discord.js");
+const express = require('express');
+const {
+  Client,
+  GatewayIntentBits,
+  SlashCommandBuilder,
+  REST,
+  Routes,
+} = require('discord.js');
 
-// ✅ keep Render alive
+/* =======================
+   KEEP-ALIVE WEB SERVER
+======================= */
+
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-app.get("/", (req, res) => {
-  res.send("Bot is alive!");
+app.get('/', (req, res) => {
+  res.send('Bot is alive!');
 });
 
 app.listen(PORT, () => {
   console.log(`🌐 Web server running on port ${PORT}`);
 });
 
-// ✅ create bot
+/* =======================
+   DISCORD CLIENT
+======================= */
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
 
-// ✅ when ready
-client.once("ready", () => {
-  console.log(`✅ Bot logged in as ${client.user.tag}`);
+/* =======================
+   SLASH COMMAND DATA
+======================= */
+
+const commands = [
+  new SlashCommandBuilder()
+    .setName('blacklist')
+    .setDescription('Blacklist a user')
+    .addUserOption(option =>
+      option.setName('user')
+        .setDescription('User to blacklist')
+        .setRequired(true)
+    )
+    .toJSON(),
+];
+
+/* =======================
+   REGISTER COMMANDS
+======================= */
+
+async function registerCommands() {
+  try {
+    console.log('🔄 Registering slash commands...');
+
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+
+    await rest.put(
+      Routes.applicationGuildCommands(
+        process.env.CLIENT_ID,
+        process.env.GUILD_ID
+      ),
+      { body: commands }
+    );
+
+    console.log('✅ Slash commands registered');
+  } catch (error) {
+    console.error('❌ Command registration failed:', error);
+  }
+}
+
+/* =======================
+   BOT READY
+======================= */
+
+client.once('ready', () => {
+  console.log(`✅ Logged in as ${client.user.tag}`);
 });
 
-// ✅ interaction handler (simple test)
-client.on("interactionCreate", async interaction => {
+/* =======================
+   COMMAND HANDLER
+======================= */
+
+client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === "blacklist") {
-    await interaction.reply("User not found");
+  if (interaction.commandName === 'blacklist') {
+    const user = interaction.options.getUser('user');
+
+    await interaction.reply(
+      `🚫 ${user.tag} has been blacklisted (demo).`
+    );
   }
 });
 
-// ✅ deploy commands WITHOUT blocking startup
-(async () => {
-  try {
-    console.log("📦 Registering slash commands...");
-    await require("./deploy-commands.js");
-    console.log("✅ Slash commands registered");
-  } catch (err) {
-    console.error("❌ Command deploy failed:", err);
-  }
-})();
+/* =======================
+   START BOT
+======================= */
 
-// ✅ login LAST
-console.log("🔑 Attempting to log in...");
-client.login(process.env.TOKEN);
+(async () => {
+  await registerCommands();
+
+  console.log('🔑 Attempting to log in...');
+  client.login(process.env.DISCORD_TOKEN);
+})();
