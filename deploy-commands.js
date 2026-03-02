@@ -5,19 +5,19 @@ const commands = [
   new SlashCommandBuilder()
     .setName("blacklist")
     .setDescription("Blacklist a user")
-    .addUserOption((option) =>
+    .addUserOption(option =>
       option
         .setName("user")
         .setDescription("User to blacklist")
         .setRequired(true)
     ),
-].map((command) => command.toJSON());
+].map(cmd => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 (async () => {
   try {
-    console.log("🔄 Started refreshing application (/) commands.");
+    console.log("🔄 Registering slash commands...");
 
     await rest.put(
       Routes.applicationGuildCommands(
@@ -27,8 +27,8 @@ const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
       { body: commands }
     );
 
-    console.log("✅ Successfully reloaded application (/) commands.");
-  } catch (error) {
-    console.error(error);
+    console.log("✅ Slash commands registered.");
+  } catch (err) {
+    console.error("❌ Command registration failed:", err);
   }
 })();
