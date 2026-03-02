@@ -1,18 +1,32 @@
 const { Client, GatewayIntentBits } = require("discord.js");
+const express = require("express");
 require("dotenv").config();
 
-// 🔥 THIS AUTO-REGISTERS SLASH COMMANDS
+// 🔹 EXPRESS SERVER (REQUIRED FOR FREE RENDER WEB SERVICE)
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  res.send("Bot is running!");
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 Web server running on port ${PORT}`);
+});
+
+// 🔹 REGISTER SLASH COMMANDS
 require("./deploy-commands.js");
 
+// 🔹 DISCORD CLIENT
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
 
 client.once("ready", () => {
-  console.log(`✅ Bot is alive as ${client.user.tag}`);
+  console.log(`✅ Bot logged in as ${client.user.tag}`);
 });
 
-// Handle slash commands
+// 🔹 SLASH COMMAND HANDLER
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -22,7 +36,5 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-// 🔥 REQUIRED FOR RENDER
-const PORT = process.env.PORT || 3000;
-
+// 🔹 LOGIN
 client.login(process.env.TOKEN);
